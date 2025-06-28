@@ -24,6 +24,13 @@ public class JwtService {
                 .sign(algorithm);
     }
 
+    public String generateRefreshToken(String email) {
+        return JWT.create()
+                .withSubject(email)
+                .withExpiresAt(new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000))
+                .sign(algorithm);
+    }
+
     public String extractEmail(String token) {
         return JWT.require(algorithm)
                 .build().verify(token).getSubject();
@@ -37,5 +44,18 @@ public class JwtService {
     public long getTokenExpiryMillis(String token) {
         Date expiresAt = JWT.require(algorithm).build().verify(token).getExpiresAt();
         return expiresAt.getTime() - System.currentTimeMillis();
+    }
+
+    public boolean isTokenValid(String token, String email) {
+        try {
+            String subject = extractEmail(token);
+            return subject.equals(email) && !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean isTokenExpired(String token) {
+        return JWT.require(algorithm).build().verify(token).getExpiresAt().before(new Date());
     }
 }

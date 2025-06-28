@@ -1,9 +1,14 @@
 package com.shopverse.shopverse.controller;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
+import com.shopverse.shopverse.entity.User;
+import com.shopverse.shopverse.repository.UserRepository;
 import com.shopverse.shopverse.security.JwtService;
 import com.shopverse.shopverse.security.TokenBlacklistService;
+import com.shopverse.shopverse.security.TokenStore;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -37,14 +42,18 @@ public class UserController {
     private final UserService service;
     private final JwtService jwtService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final UserRepository userRepository;
+    private final TokenStore tokenStore;
 
     @Value("${custom.ADMIN_KEY}")
     String adminKey;
 
-    public UserController(UserService service, JwtService jwtService, TokenBlacklistService tokenBlacklistService) {
+    public UserController(UserService service, JwtService jwtService, TokenBlacklistService tokenBlacklistService, UserRepository userRepository, TokenStore tokenStore) {
         this.service = service;
         this.jwtService = jwtService;
         this.tokenBlacklistService = tokenBlacklistService;
+        this.userRepository = userRepository;
+        this.tokenStore = tokenStore;
     }
 
     @PostMapping("/register")
@@ -90,6 +99,26 @@ public class UserController {
         tokenBlacklistService.blacklistToken(token, expiry);
 
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "", "User Logged Out Successfully"));
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<ApiResponse<String>> refreshToken(@RequestBody Map<String, String> body) {
+        String refreshToken= body.get("refreshToken");
+        if(refreshToken==null) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>("FAILED","Invalid Refresh Token",null));
+        }
+
+        String email = jwtService.extractEmail(refreshToken);
+        if(!jwtService.isTokenValid(refreshToken, email) && !tokenStore.isRefreshTokenValid(email, refreshToken)){
+            return ResponseEntity.badRequest().body(new ApiResponse<>("FAILED","Invalid Refresh Token",null));
+        }
+
+        Optional<User> user = userRepository.findByEmail(email);
+        if(!user.isPresent()){
+            return ResponseEntity.badRequest().body(new ApiResponse<>("FAILED","Invalid Refresh Token",null));
+        }
+        String newToken = jwtService.generateToken(email, user.get().getRole());
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "", newToken));
     }
 
 }
