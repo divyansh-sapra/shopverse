@@ -3,6 +3,7 @@ package com.shopverse.shopverse.service;
 import java.util.List;
 import java.util.Optional;
 
+import com.shopverse.shopverse.security.TokenStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class UserService {
     private final UserRepository userRepo;
     private final BCryptPasswordEncoder encoder;
     private final JwtService jwtService;
+    private final TokenStore tokenStore;
 
     @Value("${custom.username}")
     String username;
@@ -35,10 +37,11 @@ public class UserService {
         System.out.println(this.username + "" + this.password);
     }
 
-    public UserService(UserRepository userRepo, BCryptPasswordEncoder encoder, JwtService jwtService) {
+    public UserService(UserRepository userRepo, BCryptPasswordEncoder encoder, JwtService jwtService, TokenStore tokenStore) {
         this.userRepo = userRepo;
         this.encoder = encoder;
         this.jwtService = jwtService;
+        this.tokenStore=tokenStore;
     }
 
     public String registerUser(UserRequest req) {
@@ -66,17 +69,21 @@ public class UserService {
         String message;
         String token;
         String role;
+        String refreshToken;
         if (!encoder.matches(loginReq.password(), user.getPassword())) {
             message = "Password does not match";
             token = "";
             role = "";
+            refreshToken="";
         } else {
             message = "Logged in successfully";
             token = jwtService.generateToken(user.getEmail(), user.getRole());
+            refreshToken = jwtService.generateRefreshToken(user.getEmail());
+            tokenStore.storeRefreshToken(user.getEmail(), refreshToken);
             role = user.getRole();
         }
 
-        return new LoginResponse(message, token, role);
+        return new LoginResponse(message, token, refreshToken, role);
     }
 
     public List<UserResponse> getAllUsers() {

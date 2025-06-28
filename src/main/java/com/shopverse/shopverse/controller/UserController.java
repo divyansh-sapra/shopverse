@@ -1,7 +1,15 @@
 package com.shopverse.shopverse.controller;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
+import com.shopverse.shopverse.entity.User;
+import com.shopverse.shopverse.repository.UserRepository;
+import com.shopverse.shopverse.security.JwtService;
+import com.shopverse.shopverse.security.TokenBlacklistService;
+import com.shopverse.shopverse.security.TokenStore;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,12 +40,20 @@ import com.shopverse.shopverse.dto.ApiResponse;
 public class UserController {
 
     private final UserService service;
+    private final JwtService jwtService;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final UserRepository userRepository;
+    private final TokenStore tokenStore;
 
     @Value("${custom.ADMIN_KEY}")
     String adminKey;
 
-    public UserController(UserService service) {
+    public UserController(UserService service, JwtService jwtService, TokenBlacklistService tokenBlacklistService, UserRepository userRepository, TokenStore tokenStore) {
         this.service = service;
+        this.jwtService = jwtService;
+        this.tokenBlacklistService = tokenBlacklistService;
+        this.userRepository = userRepository;
+        this.tokenStore = tokenStore;
     }
 
     @PostMapping("/register")
@@ -69,6 +85,40 @@ public class UserController {
         }
         ApiResponse<List<UserResponse>> response = new ApiResponse<>("SUCCESS", "", users);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(HttpServletRequest request) {
+        String authorization = request.getHeader("Authorization");
+        if (authorization == null || !authorization.startsWith("Bearer")) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>("FAILURE", "No Token Provided", null));
+        }
+
+        String token = authorization.substring(7);
+        long expiry = jwtService.getTokenExpiryMillis(token);
+        tokenBlacklistService.blacklistToken(token, expiry);
+
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "", "User Logged Out Successfully"));
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<ApiResponse<String>> refreshToken(@RequestBody Map<String, String> body) {
+        String refreshToken= body.get("refreshToken");
+        if(refreshToken==null) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>("FAILED","Invalid Refresh Token",null));
+        }
+
+        String email = jwtService.extractEmail(refreshToken);
+        if(!jwtService.isTokenValid(refreshToken, email) && !tokenStore.isRefreshTokenValid(email, refreshToken)){
+            return ResponseEntity.badRequest().body(new ApiResponse<>("FAILED","Invalid Refresh Token",null));
+        }
+
+        Optional<User> user = userRepository.findByEmail(email);
+        if(!user.isPresent()){
+            return ResponseEntity.badRequest().body(new ApiResponse<>("FAILED","Invalid Refresh Token",null));
+        }
+        String newToken = jwtService.generateToken(email, user.get().getRole());
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "", newToken));
     }
 
 }
