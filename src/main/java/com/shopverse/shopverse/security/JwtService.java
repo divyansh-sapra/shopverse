@@ -11,7 +11,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 public class JwtService {
 
     private static final String SECRET_KEY = "asjfbaksfaskdfaksdfkasd.askndlfna.-qalsnasd";
-    private static final long EXPIRATION_TIME_MS = 24 * 60 * 60 * 1000;
+    private static final long EXPIRATION_TIME_MS = 60L * 1000;
 
     private final Algorithm algorithm = Algorithm.HMAC256(SECRET_KEY);
 
@@ -32,5 +32,10 @@ public class JwtService {
     public String extractRole(String token) {
         return JWT.require(algorithm)
                 .build().verify(token).getClaim("role").asString();
+    }
+
+    public long getTokenExpiryMillis(String token) {
+        Date expiresAt = JWT.require(algorithm).build().verify(token).getExpiresAt();
+        return expiresAt.getTime() - System.currentTimeMillis();
     }
 }

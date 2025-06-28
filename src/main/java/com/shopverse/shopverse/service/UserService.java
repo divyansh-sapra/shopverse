@@ -62,6 +62,9 @@ public class UserService {
     }
 
     public LoginResponse loginUser(LoginRequest loginReq) {
+        User userByIdValue = userRepo.findUserByIdValue(1L);
+        System.out.println("userEmail:" + userByIdValue.getName());
+        System.out.println("userIDs:" + userByIdValue.getId());
         User user = userRepo.findByEmail(loginReq.email()).orElseThrow(() -> new RuntimeException("Invalid Email or Password"));
         String message;
         String token;

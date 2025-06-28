@@ -17,14 +17,16 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
-public class JwtAuthFilter extends OncePerRequestFilter  {
+public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserRepository userRepo;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public JwtAuthFilter(JwtService jwtService, UserRepository userRepo) {
+    public JwtAuthFilter(JwtService jwtService, UserRepository userRepo, TokenBlacklistService tokenBlacklistService) {
         this.jwtService = jwtService;
         this.userRepo = userRepo;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Override
@@ -43,6 +45,12 @@ public class JwtAuthFilter extends OncePerRequestFilter  {
 
         // Extract token and email
         String token = authHeader.substring(7); // Remove "Bearer "
+
+        if(tokenBlacklistService.isTokenBlacklist(token)){
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         String email = jwtService.extractEmail(token);
 
         // Check if email is not null and not already authenticated

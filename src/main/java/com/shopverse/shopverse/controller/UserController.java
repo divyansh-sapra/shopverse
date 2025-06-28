@@ -2,6 +2,9 @@ package com.shopverse.shopverse.controller;
 
 import java.util.List;
 
+import com.shopverse.shopverse.security.JwtService;
+import com.shopverse.shopverse.security.TokenBlacklistService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,12 +35,16 @@ import com.shopverse.shopverse.dto.ApiResponse;
 public class UserController {
 
     private final UserService service;
+    private final JwtService jwtService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Value("${custom.ADMIN_KEY}")
     String adminKey;
 
-    public UserController(UserService service) {
+    public UserController(UserService service, JwtService jwtService, TokenBlacklistService tokenBlacklistService) {
         this.service = service;
+        this.jwtService = jwtService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @PostMapping("/register")
@@ -69,6 +76,20 @@ public class UserController {
         }
         ApiResponse<List<UserResponse>> response = new ApiResponse<>("SUCCESS", "", users);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(HttpServletRequest request) {
+        String authorization = request.getHeader("Authorization");
+        if (authorization == null || !authorization.startsWith("Bearer")) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>("FAILURE", "No Token Provided", null));
+        }
+
+        String token = authorization.substring(7);
+        long expiry = jwtService.getTokenExpiryMillis(token);
+        tokenBlacklistService.blacklistToken(token, expiry);
+
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "", "User Logged Out Successfully"));
     }
 
 }
