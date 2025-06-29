@@ -3,15 +3,15 @@ package com.shopverse.shopverse.service;
 import java.util.List;
 import java.util.Optional;
 
+import com.shopverse.shopverse.dto.*;
 import com.shopverse.shopverse.security.TokenStore;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.shopverse.shopverse.dto.LoginRequest;
-import com.shopverse.shopverse.dto.LoginResponse;
-import com.shopverse.shopverse.dto.UserRequest;
-import com.shopverse.shopverse.dto.UserResponse;
 import com.shopverse.shopverse.entity.User;
 import com.shopverse.shopverse.repository.UserRepository;
 import com.shopverse.shopverse.security.JwtService;
@@ -25,6 +25,9 @@ public class UserService {
     private final BCryptPasswordEncoder encoder;
     private final JwtService jwtService;
     private final TokenStore tokenStore;
+
+    @Autowired
+    private UserCacheService userCacheService;
 
     @Value("${custom.username}")
     String username;
@@ -41,7 +44,7 @@ public class UserService {
         this.userRepo = userRepo;
         this.encoder = encoder;
         this.jwtService = jwtService;
-        this.tokenStore=tokenStore;
+        this.tokenStore = tokenStore;
     }
 
     public String registerUser(UserRequest req) {
@@ -61,7 +64,8 @@ public class UserService {
     }
 
     public Optional<UserResponse> getUserByEmail(String email) {
-        return userRepo.findByEmail(email).map(user -> new UserResponse(user.getName(), user.getEmail()));
+        return userCacheService.getUserInfo(email)
+                .map(u -> new UserResponse(u.getName(), u.getEmail()));
     }
 
     public LoginResponse loginUser(LoginRequest loginReq) {
@@ -74,7 +78,7 @@ public class UserService {
             message = "Password does not match";
             token = "";
             role = "";
-            refreshToken="";
+            refreshToken = "";
         } else {
             message = "Logged in successfully";
             token = jwtService.generateToken(user.getEmail(), user.getRole());
@@ -88,5 +92,18 @@ public class UserService {
 
     public List<UserResponse> getAllUsers() {
         return userRepo.findAll().stream().map(user -> new UserResponse(user.getName(), user.getEmail())).toList();
+    }
+
+    @CacheEvict(value = "user", key = "#email")
+    public UserResponse updateUser(String email, UpdateRequest updateRequest) {
+        User user = userRepo.findByEmail(updateRequest.email()).orElseThrow(()-> new RuntimeException("User not found"));
+        user.setName(updateRequest.name());
+        userRepo.save(user);
+        return new UserResponse(user.getName(), user.getEmail());
+    }
+
+    @CacheEvict(value = "users", key = "#email")
+    public void deleteUserByEmail(String email) {
+        userRepo.findByEmail(email).ifPresent(userRepo::delete);
     }
 }

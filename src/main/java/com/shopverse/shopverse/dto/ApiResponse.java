@@ -2,7 +2,7 @@ package com.shopverse.shopverse.dto;
 
 public class ApiResponse<T> {
 
-    private String success;
+    private String status;
     private String errorMessage;
     private T data;
 
@@ -10,18 +10,18 @@ public class ApiResponse<T> {
 
     }
 
-    public ApiResponse(String success, String errorMessage, T data) {
-        this.success = success;
+    public ApiResponse(String status, String errorMessage, T data) {
+        this.status = status;
         this.errorMessage = errorMessage;
         this.data = data;
     }
 
-    public String getSuccess() {
-        return success;
+    public String getStatus() {
+        return status;
     }
 
-    public void setSuccess(String success) {
-        this.success = success;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public String getErrorMessage() {

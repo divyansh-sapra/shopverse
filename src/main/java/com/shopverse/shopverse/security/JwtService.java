@@ -11,7 +11,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 public class JwtService {
 
     private static final String SECRET_KEY = "asjfbaksfaskdfaksdfkasd.askndlfna.-qalsnasd";
-    private static final long EXPIRATION_TIME_MS = 60L * 1000;
+    private static final long EXPIRATION_TIME_MS = 60 * 60L * 1000;
 
     private final Algorithm algorithm = Algorithm.HMAC256(SECRET_KEY);
 

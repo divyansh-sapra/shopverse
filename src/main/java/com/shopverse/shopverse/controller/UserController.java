@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.shopverse.shopverse.dto.*;
 import com.shopverse.shopverse.entity.User;
 import com.shopverse.shopverse.repository.UserRepository;
 import com.shopverse.shopverse.security.JwtService;
@@ -14,26 +15,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.shopverse.shopverse.dto.GetUserEmailRequest;
-import com.shopverse.shopverse.dto.LoginRequest;
-import com.shopverse.shopverse.dto.LoginResponse;
-import com.shopverse.shopverse.dto.UserRequest;
-import com.shopverse.shopverse.dto.UserResponse;
 import com.shopverse.shopverse.service.UserService;
 
 import jakarta.validation.Valid;
-
-import org.springframework.web.bind.annotation.RequestParam;
-
-import com.shopverse.shopverse.dto.ApiResponse;
 
 @RestController
 @RequestMapping("/api/users")
@@ -65,8 +52,8 @@ public class UserController {
     }
 
     @GetMapping("/{email}")
-    public ResponseEntity<UserResponse> getUserByEmail(@Valid @PathVariable GetUserEmailRequest email) {
-        return service.getUserByEmail(email.email())
+    public ResponseEntity<UserResponse> getUserByEmail(@PathVariable String email) {
+        return service.getUserByEmail(email)
                 .map(ResponseEntity::ok).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Found"));
     }
 
@@ -121,4 +108,15 @@ public class UserController {
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "", newToken));
     }
 
+    @PatchMapping("/update-user")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(@Valid @RequestBody UpdateRequest updateRequest) {
+        UserResponse userResponse = service.updateUser(updateRequest.email(), updateRequest);
+        return ResponseEntity.ok(new ApiResponse<>("success","", userResponse));
+    }
+
+    @DeleteMapping("/delete-user/{email}")
+    public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable String email) {
+        service.deleteUserByEmail(email);
+        return ResponseEntity.ok(new ApiResponse<>("Success","", "User Deleted Successfully"));
+    }
 }

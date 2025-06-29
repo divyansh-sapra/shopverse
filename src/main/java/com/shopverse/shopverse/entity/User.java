@@ -10,6 +10,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+
+import java.io.Serializable;
+import java.sql.Date;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -17,7 +23,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+@SQLDelete(sql = "UPDATE users SET deleted_at = NOW() WHERE id = ?")
+@Where(clause = "deleted_at IS null")
+public class User implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,4 +40,6 @@ public class User {
     private String password;
 
     private String role; // e.g., ADMIN or CUSTOMER
+
+    private LocalDateTime deleted_at;
 }

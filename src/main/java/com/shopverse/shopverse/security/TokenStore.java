@@ -4,6 +4,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+
 @Service
 public class TokenStore {
 
@@ -14,7 +16,8 @@ public class TokenStore {
     }
 
     public void storeRefreshToken(String email, String refreshToken){
-        redisTemplate.opsForValue().set("refresh: "+email, refreshToken);
+        Duration duration = Duration.ofMillis(3600000);
+        redisTemplate.opsForValue().set("refresh: "+email, refreshToken, duration);
     }
 
     public boolean isRefreshTokenValid(String email, String refreshToken) {
