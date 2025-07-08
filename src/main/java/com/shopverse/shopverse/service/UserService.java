@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -81,7 +82,7 @@ public class UserService {
             refreshToken = "";
         } else {
             message = "Logged in successfully";
-            token = jwtService.generateToken(user.getEmail(), user.getRole());
+            token = jwtService.generateToken(user.getEmail(), user.getRole(), user.getId());
             refreshToken = jwtService.generateRefreshToken(user.getEmail());
             tokenStore.storeRefreshToken(user.getEmail(), refreshToken);
             role = user.getRole();
@@ -105,5 +106,17 @@ public class UserService {
     @CacheEvict(value = "users", key = "#email")
     public void deleteUserByEmail(String email) {
         userRepo.findByEmail(email).ifPresent(userRepo::delete);
+    }
+
+    @Async
+    //or don't give name giving ban name is not required
+    public void testThread() {
+        System.out.println("Service Thread Name: " + Thread.currentThread().getName());
+
+        try {
+            Thread.sleep(50000);
+        } catch (Exception e){
+            //handle exception
+        }
     }
 }

@@ -15,9 +15,10 @@ public class JwtService {
 
     private final Algorithm algorithm = Algorithm.HMAC256(SECRET_KEY);
 
-    public String generateToken(String email, String role) {
+    public String generateToken(String email, String role, Long id) {
         return JWT.create()
                 .withSubject(email)
+                .withClaim("id", id)
                 .withClaim("role", role)
                 .withIssuedAt(new Date())
                 .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME_MS))
@@ -34,6 +35,10 @@ public class JwtService {
     public String extractEmail(String token) {
         return JWT.require(algorithm)
                 .build().verify(token).getSubject();
+    }
+
+    public Long extractId(String token) {
+        return  JWT.require(algorithm).build().verify(token).getClaim("id").asLong();
     }
 
     public String extractRole(String token) {

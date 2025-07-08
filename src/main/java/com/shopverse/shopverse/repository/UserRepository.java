@@ -18,5 +18,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
             select * from allUsers
             """, nativeQuery = true)
     User findUserByIdValue(@Param("id") Long id);
-    
+
 }

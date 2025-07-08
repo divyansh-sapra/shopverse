@@ -104,7 +104,7 @@ public class UserController {
         if(!user.isPresent()){
             return ResponseEntity.badRequest().body(new ApiResponse<>("FAILED","Invalid Refresh Token",null));
         }
-        String newToken = jwtService.generateToken(email, user.get().getRole());
+        String newToken = jwtService.generateToken(email, user.get().getRole(), user.get().getId());
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "", newToken));
     }
 
@@ -118,5 +118,13 @@ public class UserController {
     public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable String email) {
         service.deleteUserByEmail(email);
         return ResponseEntity.ok(new ApiResponse<>("Success","", "User Deleted Successfully"));
+    }
+
+    @GetMapping("test-thread")
+    public void testThread(){
+//        for (int i = 0; i < 5; i++) {
+            System.out.println("Controller Thread name: " + Thread.currentThread().getName());
+            service.testThread();
+//        }
     }
 }
