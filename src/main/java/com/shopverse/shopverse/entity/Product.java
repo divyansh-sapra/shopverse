@@ -3,8 +3,6 @@ package com.shopverse.shopverse.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLInsert;
-import org.hibernate.annotations.SQLUpdate;
 import org.hibernate.annotations.Where;
 
 import java.math.BigDecimal;

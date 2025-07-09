@@ -1,14 +1,16 @@
 package com.shopverse.shopverse.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
 import com.shopverse.shopverse.dto.*;
+import com.shopverse.shopverse.entity.Cart;
+import com.shopverse.shopverse.repository.CartRepository;
 import com.shopverse.shopverse.security.TokenStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class UserService {
     private final BCryptPasswordEncoder encoder;
     private final JwtService jwtService;
     private final TokenStore tokenStore;
+    private final CartRepository cartRepository;
 
     @Autowired
     private UserCacheService userCacheService;
@@ -41,11 +44,12 @@ public class UserService {
         System.out.println(this.username + "" + this.password);
     }
 
-    public UserService(UserRepository userRepo, BCryptPasswordEncoder encoder, JwtService jwtService, TokenStore tokenStore) {
+    public UserService(UserRepository userRepo, BCryptPasswordEncoder encoder, JwtService jwtService, TokenStore tokenStore, CartRepository cartRepository) {
         this.userRepo = userRepo;
         this.encoder = encoder;
         this.jwtService = jwtService;
         this.tokenStore = tokenStore;
+        this.cartRepository = cartRepository;
     }
 
     public String registerUser(UserRequest req) {
@@ -60,7 +64,16 @@ public class UserService {
                 .role(req.role())
                 .build();
 
-        userRepo.save(user);
+        User registeredUser = userRepo.save(user);
+
+        Cart cart = Cart.builder()
+                .userId(user.getId())
+                .total_items(0)
+                .total_products(0)
+                .total_amount(BigDecimal.valueOf(0))
+                .build();
+        cartRepository.save(cart);
+
         return "User registered successfully";
     }
 
